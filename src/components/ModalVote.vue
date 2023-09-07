@@ -33,6 +33,7 @@ const format = getChoiceString;
 const { formatNumber, formatCompactNumber } = useIntl();
 const { addVotedProposalId } = useProposals();
 const { isGnosisAndNotSpaceNetwork } = useGnosis(props.space);
+const isAttesting = ref(false);
 
 const isLoadingShutter = ref(false);
 
@@ -73,13 +74,13 @@ async function voteShutter() {
 
 async function vote(payload) {
   if (payload.proposal.type === 'weighted') {
-    const data = Object.entries(payload.choice).map(([index, value]) => ({
-      name: payload.proposal.choices[+index - 1],
-      value: value as number
-    }));
     const auth = getInstance();
-
-    return weightedVotingProposalAttest(payload.proposal.id, auth.web3, data);
+    isAttesting.value = true;
+    return weightedVotingProposalAttest(
+      payload.proposal.id,
+      auth.web3,
+      payload.choice
+    ).finally(() => (isAttesting.value = false));
   } else return send(props.space, 'vote', payload);
 }
 
@@ -341,10 +342,11 @@ watch(
             votingPower === 0 ||
             !isValidVoter ||
             isSending ||
+            isAttesting ||
             isLoadingShutter ||
             isGnosisAndNotSpaceNetwork
           "
-          :loading="isSending || isLoadingShutter"
+          :loading="isSending || isLoadingShutter || isAttesting"
           class="w-full"
           primary
           data-testid="confirm-vote-button"

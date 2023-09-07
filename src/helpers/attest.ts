@@ -41,20 +41,10 @@ export async function createWeightedVotingProposalSchema(
 export async function weightedVotingProposalAttest(
   proposalId: string,
   web3: Web3Provider | Wallet,
-  data: { name: string; value: number }[]
+  data: Record<number, number>
 ) {
   console.log('proposalId: ', proposalId);
-  const totalValues = data.map(item => item.value);
-  const _data = data.map(item => {
-    return {
-      name: item.name,
-      percentage: Math.round(
-        calcPercentageOfSum(item.value, totalValues) * 10000
-      )
-    };
-  });
-
-  console.log('_data: ', _data);
+  console.log({ data });
 
   const signer = 'getSigner' in web3 ? web3.getSigner() : web3;
   // const signer = 'getSigner' in web3 ? web3.getSigner() : web3;
@@ -76,39 +66,39 @@ export async function weightedVotingProposalAttest(
     uid: WEIGHTED_VOTING_PROPOSAL_SCHEMA_UID
   });
   const schemaEncoder = new SchemaEncoder(schema.schema);
-  console.log('schema.schema: ', schema.schema);
 
   try {
-    const multiAttestData = _data.map((item): AttestationRequestData => {
-      const encodedData = schemaEncoder.encodeData([
-        {
-          name: 'proposalId',
-          type: 'bytes32',
-          value: proposalId
-        },
-        { name: 'name', type: 'string', value: item.name },
-        {
-          name: 'percent',
-          type: 'uint16',
-          value: item.percentage
-        }
-      ]);
-      return {
-        recipient: '0x0000000000000000000000000000000000000000',
-        revocable: false, // Be aware that if your schema is not revocable, this MUST be false
-        data: encodedData
-      };
-    });
+    const multiAttestData = Object.entries(data).map(
+      ([name, value]): AttestationRequestData => {
+        const encodedData = schemaEncoder.encodeData([
+          {
+            name: 'proposalId',
+            type: 'bytes32',
+            value: proposalId
+          },
+          { name: 'name', type: 'string', value: name },
+          {
+            name: 'percent',
+            type: 'uint16',
+            value: value
+          }
+        ]);
+        return {
+          recipient: '0x0000000000000000000000000000000000000000',
+          revocable: false, // Be aware that if your schema is not revocable, this MUST be false
+          data: encodedData
+        };
+      }
+    );
     const tx = await eas.multiAttest([
       {
         schema: WEIGHTED_VOTING_PROPOSAL_SCHEMA_UID,
         data: multiAttestData
       }
     ]);
-
+    console.log({ tx });
     const newAttestationUID = await tx.wait();
-
-    console.log('New attestation UID:', newAttestationUID);
+    return { id: newAttestationUID };
   } catch (e) {
     console.log('error on sending tx:', e);
   }
