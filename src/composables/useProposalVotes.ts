@@ -27,6 +27,7 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
   const loadingMoreVotes = ref(false);
   const votes = ref<Vote[]>([]);
   const userVote = ref<Vote | null>(null);
+  const attestations = ref<Vote[]>([]);
 
   const userPrioritizedVotes = computed(() => {
     const votesClone = clone(votes.value);
@@ -130,7 +131,6 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
         attestation.decodedDataJson
       ) as Array<Attestation>;
 
-      console.log({ data });
       const choice = {};
       const choices: number[] = data[1].value.value as number[];
       const percentages: number[] = data[2].value.value as number[];
@@ -161,8 +161,9 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
         _fetchVotes(filter),
         _fetchAttestations()
       ]);
-      console.log({ response });
+
       const formattedAttestations = formatAttestations(attestationsResponse);
+      attestations.value = formattedAttestations;
       votes.value = [
         ...formattedAttestations
         // ...formatProposalVotes(response)
@@ -182,6 +183,7 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
     try {
       const attestationsResponse = await _fetchSingleAttestation(voter);
       const formattedAttestations = formatAttestations(attestationsResponse);
+      attestations.value = formattedAttestations;
 
       votes.value = formattedAttestations;
     } catch (e) {
@@ -221,6 +223,7 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
 
   return {
     votes,
+    attestations,
     userPrioritizedVotes,
     profiles,
     loadingVotes,

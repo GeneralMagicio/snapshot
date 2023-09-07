@@ -105,7 +105,7 @@ export async function weightedVotingProposalAttest(
     ]);
     console.log({ tx });
     const newAttestationUID = await tx.wait();
-    return { id: newAttestationUID };
+    return { id: newAttestationUID, ipfs: newAttestationUID };
   } catch (e) {
     console.log('error on sending tx:', e);
   }
