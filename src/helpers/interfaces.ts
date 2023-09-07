@@ -414,9 +414,10 @@ export type DelegatesProposal = {
 };
 
 export type Attestations = Array<{
-  time: 1694009566;
+  time: number;
   decodedDataJson: string;
   attester: string;
+  id: string;
 }>;
 
 export interface Attestation {
@@ -426,6 +427,6 @@ export interface Attestation {
   value: {
     name: string;
     type: string;
-    value: number;
+    value: number | string | number[];
   };
 }

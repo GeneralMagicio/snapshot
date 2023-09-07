@@ -529,7 +529,6 @@ export const ATTESTAIONS_QUERY = gql`
   query AttestaionsQuery($proposalID: String!, $schemaID: String!) {
     attestations(
       where: {
-        # attester: { equals: "0xF23eA0b5F14afcbe532A1df273F7B233EBe41C78" },
         schemaId: { equals: $schemaID }
         data: { startsWith: $proposalID }
       }
@@ -538,6 +537,29 @@ export const ATTESTAIONS_QUERY = gql`
       time
       decodedDataJson
       attester
+      id
+    }
+  }
+`;
+
+export const SINGLE_ATTESTAION_QUERY = gql`
+  query AttestaionsQuery(
+    $proposalID: String!
+    $schemaID: String!
+    $attester: String!
+  ) {
+    attestations(
+      where: {
+        attester: { equals: $attester }
+        schemaId: { equals: $schemaID }
+        data: { startsWith: $proposalID }
+      }
+      orderBy: { time: desc }
+    ) {
+      time
+      decodedDataJson
+      attester
+      id
     }
   }
 `;

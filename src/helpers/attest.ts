@@ -10,7 +10,7 @@ import { EASNetworks } from './constants';
 import { calcPercentageOfSum } from '@snapshot-labs/snapshot.js/src/voting/quadratic';
 
 export const WEIGHTED_VOTING_PROPOSAL_SCHEMA_UID =
-  '0x5cdcfa48b615f285686efd222db3b733e93d5e6fb6448f1f115726d6b4f2b55f';
+  '0x30457fc9ddd2ce5cc0c8ae9ca5e327db7ec51ea2f766eb7067bbc2e16fbfb783';
 
 export async function createWeightedVotingProposalSchema(
   web3: Web3Provider | Wallet
@@ -66,30 +66,37 @@ export async function weightedVotingProposalAttest(
     uid: WEIGHTED_VOTING_PROPOSAL_SCHEMA_UID
   });
   const schemaEncoder = new SchemaEncoder(schema.schema);
+  const selectedChoices: number[] = [];
+  const weights: number[] = [];
+  Object.entries(data).forEach(([choiceId, value]) => {
+    selectedChoices.push(+choiceId);
+    weights.push(+value);
+  });
+  const percentages = weights.map(weight =>
+    Math.round(calcPercentageOfSum(weight * 10000, weights))
+  );
 
   try {
-    const multiAttestData = Object.entries(data).map(
-      ([name, value]): AttestationRequestData => {
-        const encodedData = schemaEncoder.encodeData([
-          {
-            name: 'proposalId',
-            type: 'bytes32',
-            value: proposalId
-          },
-          { name: 'name', type: 'string', value: name },
-          {
-            name: 'percent',
-            type: 'uint16',
-            value: value
-          }
-        ]);
-        return {
-          recipient: '0x0000000000000000000000000000000000000000',
-          revocable: false, // Be aware that if your schema is not revocable, this MUST be false
-          data: encodedData
-        };
-      }
-    );
+    const multiAttestData = [true].map((): AttestationRequestData => {
+      const encodedData = schemaEncoder.encodeData([
+        {
+          name: 'proposalId',
+          type: 'bytes32',
+          value: proposalId
+        },
+        { name: 'choices', type: 'uint8[]', value: selectedChoices },
+        {
+          name: 'percentages',
+          type: 'uint16[]',
+          value: percentages
+        }
+      ]);
+      return {
+        recipient: '0x0000000000000000000000000000000000000000',
+        revocable: false, // Be aware that if your schema is not revocable, this MUST be false
+        data: encodedData
+      };
+    });
     const tx = await eas.multiAttest([
       {
         schema: WEIGHTED_VOTING_PROPOSAL_SCHEMA_UID,

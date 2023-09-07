@@ -5,9 +5,14 @@ import {
   Vote,
   VoteFilters
 } from '@/helpers/interfaces';
-import { ATTESTAIONS_QUERY, VOTES_QUERY } from '@/helpers/queries';
+import {
+  ATTESTAIONS_QUERY,
+  SINGLE_ATTESTAION_QUERY,
+  VOTES_QUERY
+} from '@/helpers/queries';
 import { clone } from '@snapshot-labs/snapshot.js/src/utils';
 import { WEIGHTED_VOTING_PROPOSAL_SCHEMA_UID } from '@/helpers/attest';
+import { getAddress } from '@ethersproject/address';
 
 type QueryParams = {
   voter?: string;
@@ -84,6 +89,23 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
     );
   }
 
+  async function _fetchSingleAttestation(attester: string) {
+    return apolloQuery(
+      {
+        context: {
+          uri: 'https://optimism-goerli-bedrock.easscan.org/graphql'
+        },
+        query: SINGLE_ATTESTAION_QUERY,
+        variables: {
+          proposalID: proposal.id,
+          schemaID: WEIGHTED_VOTING_PROPOSAL_SCHEMA_UID,
+          attester: getAddress(attester)
+        }
+      },
+      'attestations'
+    );
+  }
+
   function formatProposalVotes(votes: Vote[]) {
     if (!votes?.length) return [];
     return votes.map(vote => {
@@ -93,31 +115,42 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
     });
   }
 
-  function formatAttestations(attestations: Attestations): Vote | null {
-    if (!attestations?.length) return null;
+  function formatAttestations(attestations: Attestations): Vote[] {
+    if (!attestations?.length) return [];
 
-    const firstItemTime = attestations[0].time;
-    const items: Attestations = [];
+    const VisitedAttester = new Set<string>();
 
-    for (const item of attestations) {
-      if (item.time !== firstItemTime) break;
-      items.push(item);
-    }
+    const result: Vote[] = [];
 
-    console.log({ items });
+    attestations.forEach(attestation => {
+      if (VisitedAttester.has(attestation.attester)) return;
+      VisitedAttester.add(attestation.attester);
 
-    return items.reduce(
-      (acc, attest) => {
-        const { attester, decodedDataJson } = attest;
-        const data = JSON.parse(decodedDataJson) as Array<Attestation>;
-        const [, { value: name }, { value }] = data;
-        console.log({ data });
-        acc.voter = attester;
-        acc.choice[name.value] = value.value;
-        return acc;
-      },
-      { choice: {}, reason: '', scores: [1], balance: 1 } as Vote
-    );
+      const data = JSON.parse(
+        attestation.decodedDataJson
+      ) as Array<Attestation>;
+
+      console.log({ data });
+      const choice = {};
+      const choices: number[] = data[1].value.value as number[];
+      const percentages: number[] = data[2].value.value as number[];
+      choices.forEach((choiceId, index) => {
+        choice[choiceId] = percentages[index];
+      });
+      result.push({
+        ipfs: attestation.id,
+        voter: attestation.attester,
+        choice: choice,
+        reason: '',
+        scores: [1],
+        balance: 1,
+        vp: 1,
+        vp_by_strategy: [1],
+        created: attestation.time
+      });
+    });
+
+    return result;
   }
   async function loadVotes(filter: Partial<VoteFilters> = {}) {
     if (loadingVotes.value) return;
@@ -128,10 +161,12 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
         _fetchVotes(filter),
         _fetchAttestations()
       ]);
+      console.log({ response });
       const formattedAttestations = formatAttestations(attestationsResponse);
-      votes.value = formattedAttestations
-        ? [formattedAttestations, ...formatProposalVotes(response)]
-        : formatProposalVotes(response);
+      votes.value = [
+        ...formattedAttestations
+        // ...formatProposalVotes(response)
+      ];
     } catch (e) {
       console.log(e);
     } finally {
@@ -145,8 +180,10 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
     const response = await resolveName(search);
     const voter = response || search;
     try {
-      const response = await _fetchVote({ voter });
-      votes.value = formatProposalVotes(response);
+      const attestationsResponse = await _fetchSingleAttestation(voter);
+      const formattedAttestations = formatAttestations(attestationsResponse);
+
+      votes.value = formattedAttestations;
     } catch (e) {
       console.log(e);
     } finally {
@@ -155,18 +192,18 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
   }
 
   async function loadMoreVotes(filter: Partial<VoteFilters> = {}) {
-    if (loadingMoreVotes.value || loadingVotes.value) return;
-
-    loadingMoreVotes.value = true;
-    try {
-      const response = await _fetchVotes(filter, votes.value.length);
-
-      votes.value = votes.value.concat(formatProposalVotes(response));
-    } catch (e) {
-      console.log(e);
-    } finally {
-      loadingMoreVotes.value = false;
-    }
+    // if (loadingMoreVotes.value || loadingVotes.value) return;
+    //
+    // loadingMoreVotes.value = true;
+    // try {
+    //   const response = await _fetchVotes(filter, votes.value.length);
+    //
+    //   votes.value = votes.value.concat(formatProposalVotes(response));
+    // } catch (e) {
+    //   console.log(e);
+    // } finally {
+    //   loadingMoreVotes.value = false;
+    // }
   }
 
   async function loadUserVote(voter: string) {
