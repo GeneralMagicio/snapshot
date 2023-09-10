@@ -24,6 +24,7 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
   const { resolveName } = useResolveName();
 
   const loadingVotes = ref(false);
+  const loadingSingleVote = ref(false);
   const loadingMoreVotes = ref(false);
   const votes = ref<Vote[]>([]);
   const userVote = ref<Vote | null>(null);
@@ -146,7 +147,8 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
         balance: 1,
         vp: 1,
         vp_by_strategy: [1],
-        created: attestation.time
+        created: attestation.time,
+        isAttestation: true
       });
     });
 
@@ -175,22 +177,21 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
     }
   }
 
-  async function loadSingleVote(search: string) {
-    loadingVotes.value = true;
+  async function _loadUserAttestation(search: string): Promise<Vote[]> {
+    loadingSingleVote.value = true;
 
     const response = await resolveName(search);
     const voter = response || search;
     try {
       const attestationsResponse = await _fetchSingleAttestation(voter);
       const formattedAttestations = formatAttestations(attestationsResponse);
-      attestations.value = formattedAttestations;
-
-      votes.value = formattedAttestations;
+      return formattedAttestations;
     } catch (e) {
       console.log(e);
     } finally {
-      loadingVotes.value = false;
+      loadingSingleVote.value = false;
     }
+    return [];
   }
 
   async function loadMoreVotes(filter: Partial<VoteFilters> = {}) {
@@ -210,8 +211,10 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
 
   async function loadUserVote(voter: string) {
     try {
-      const response = await _fetchVote({ voter });
-      userVote.value = formatProposalVotes(response)[0];
+      // const response = await _fetchVote({ voter });
+      const response = await _loadUserAttestation(voter);
+      userVote.value =
+        response.length > 0 ? formatProposalVotes(response)[0] : null;
     } catch (e) {
       console.log(e);
     }
@@ -232,7 +235,7 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
     formatProposalVotes,
     loadVotes,
     loadMoreVotes,
-    loadSingleVote,
+    loadSingleVote: _loadUserAttestation,
     loadUserVote
   };
 }

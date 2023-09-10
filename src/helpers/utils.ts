@@ -113,6 +113,13 @@ export function getIpfsUrl(url: string) {
   return getUrl(url, gateway);
 }
 
+export function getAttestationUrl(url: string) {
+  const explorer: any =
+    import.meta.VITE_ATTESTATION_EXPLORER ||
+    'https://optimism-goerli-bedrock.easscan.org';
+  return `${explorer}/attestation/view/${url}`;
+}
+
 export async function clearStampCache(id: string, type = 'space') {
   if (type === 'space')
     return await fetch(`https://cdn.stamp.fyi/clear/space/${id}`);

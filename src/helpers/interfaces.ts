@@ -253,6 +253,7 @@ export interface Vote {
   vp_by_strategy: number[];
   reason: string;
   created: number;
+  isAttestation?: boolean;
 }
 
 export interface VoteFilters {

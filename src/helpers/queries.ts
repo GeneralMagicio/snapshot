@@ -553,8 +553,9 @@ export const SINGLE_ATTESTAION_QUERY = gql`
         attester: { equals: $attester }
         schemaId: { equals: $schemaID }
         data: { startsWith: $proposalID }
-      }
+      },
       orderBy: { time: desc }
+      take: 1
     ) {
       time
       decodedDataJson
