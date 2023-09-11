@@ -524,3 +524,43 @@ export const DELEGATE_VOTES_AND_PROPOSALS = gql`
     }
   }
 `;
+
+export const ATTESTAIONS_QUERY = gql`
+  query AttestaionsQuery($proposalID: String!, $schemaID: String!) {
+    attestations(
+      where: {
+        schemaId: { equals: $schemaID }
+        data: { startsWith: $proposalID }
+      }
+      orderBy: { time: desc }
+    ) {
+      time
+      decodedDataJson
+      attester
+      id
+    }
+  }
+`;
+
+export const SINGLE_ATTESTAION_QUERY = gql`
+  query AttestaionsQuery(
+    $proposalID: String!
+    $schemaID: String!
+    $attester: String!
+  ) {
+    attestations(
+      where: {
+        attester: { equals: $attester }
+        schemaId: { equals: $schemaID }
+        data: { startsWith: $proposalID }
+      },
+      orderBy: { time: desc }
+      take: 1
+    ) {
+      time
+      decodedDataJson
+      attester
+      id
+    }
+  }
+`;

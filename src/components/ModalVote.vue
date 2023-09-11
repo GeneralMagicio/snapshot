@@ -2,7 +2,9 @@
 import { shorten, getChoiceString, explorerUrl } from '@/helpers/utils';
 import { getPower, voteValidation } from '@/helpers/snapshot';
 import { ExtendedSpace, Proposal } from '@/helpers/interfaces';
+import { weightedVotingProposalAttest } from '@/helpers/attest';
 import shutterEncryptChoice from '@/helpers/shutter';
+import { getInstance } from '@snapshot-labs/lock/plugins/vue3';
 
 const { web3Account } = useWeb3();
 
@@ -31,6 +33,7 @@ const format = getChoiceString;
 const { formatNumber, formatCompactNumber } = useIntl();
 const { addVotedProposalId } = useProposals();
 const { isGnosisAndNotSpaceNetwork } = useGnosis(props.space);
+const isAttesting = ref(false);
 
 const isLoadingShutter = ref(false);
 
@@ -70,7 +73,15 @@ async function voteShutter() {
 }
 
 async function vote(payload) {
-  return send(props.space, 'vote', payload);
+  if (payload.proposal.type === 'weighted') {
+    const auth = getInstance();
+    isAttesting.value = true;
+    return weightedVotingProposalAttest(
+      payload.proposal.id,
+      auth.web3,
+      payload.choice
+    ).finally(() => (isAttesting.value = false));
+  } else return send(props.space, 'vote', payload);
 }
 
 async function handleSubmit() {
@@ -331,10 +342,11 @@ watch(
             votingPower === 0 ||
             !isValidVoter ||
             isSending ||
+            isAttesting ||
             isLoadingShutter ||
             isGnosisAndNotSpaceNetwork
           "
-          :loading="isSending || isLoadingShutter"
+          :loading="isSending || isLoadingShutter || isAttesting"
           class="w-full"
           primary
           data-testid="confirm-vote-button"

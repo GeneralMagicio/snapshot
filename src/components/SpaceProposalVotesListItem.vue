@@ -1,6 +1,11 @@
 <script lang="ts" setup>
 import { ExtendedSpace, Proposal, Vote, Profile } from '@/helpers/interfaces';
-import { shorten, getIpfsUrl, urlify } from '@/helpers/utils';
+import {
+  shorten,
+  getIpfsUrl,
+  urlify,
+  getAttestationUrl
+} from '@/helpers/utils';
 
 const props = defineProps<{
   space: ExtendedSpace;
@@ -71,7 +76,14 @@ const balanceFormatted = computed(() => {
                   class="mr-1 flex-auto text-skin-text"
                   v-text="$t('author')"
                 />
-                <BaseLink :link="getIpfsUrl(vote.ipfs)" class="text-skin-link">
+                <BaseLink
+                  :link="
+                    vote.isAttestation
+                      ? getAttestationUrl(vote.ipfs)
+                      : getIpfsUrl(vote.ipfs)
+                  "
+                  class="text-skin-link"
+                >
                   #{{ vote.ipfs.slice(0, 7) }}
                 </BaseLink>
               </div>
@@ -89,6 +101,7 @@ const balanceFormatted = computed(() => {
               </div>
             </BaseBlock>
             <BaseLink
+              v-if="!vote.isAttestation"
               :link="`https://signator.io/view?ipfs=${vote.ipfs}`"
               class="mb-2 block"
               hide-external-icon

@@ -253,6 +253,7 @@ export interface Vote {
   vp_by_strategy: number[];
   reason: string;
   created: number;
+  isAttestation?: boolean;
 }
 
 export interface VoteFilters {
@@ -412,3 +413,21 @@ export type DelegatesProposal = {
   author: string;
   title: string;
 };
+
+export type Attestations = Array<{
+  time: number;
+  decodedDataJson: string;
+  attester: string;
+  id: string;
+}>;
+
+export interface Attestation {
+  name: string;
+  type: string;
+  signature: string;
+  value: {
+    name: string;
+    type: string;
+    value: number | string | number[];
+  };
+}
