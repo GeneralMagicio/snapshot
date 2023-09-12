@@ -15,7 +15,7 @@ const {
   loadingVotes,
   loadVotes,
   loadUserVote
-} = useProposalVotes(props.proposal, 6);
+} = useProposalVotes(props.proposal, 6, props.space);
 
 const modalVotesmOpen = ref(false);
 

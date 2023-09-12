@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Proposal, Choice } from '@/helpers/interfaces';
+import { Proposal, Choice, ExtendedSpace } from '@/helpers/interfaces';
 import voting from '@snapshot-labs/snapshot.js/src/voting';
 
 const props = defineProps<{
+  space: ExtendedSpace;
   proposal: Proposal;
   modelValue: Choice;
 }>();
@@ -10,7 +11,11 @@ const props = defineProps<{
 const emit = defineEmits(['update:modelValue', 'clickVote']);
 
 const { web3, web3Account } = useWeb3();
-const { userVote, loadUserVote } = useProposalVotes(props.proposal);
+const { userVote, loadUserVote } = useProposalVotes(
+  props.proposal,
+  undefined,
+  props.space
+);
 
 const key = ref(0);
 

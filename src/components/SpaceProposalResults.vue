@@ -16,7 +16,6 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(['reload']);
-
 const ts = Number((Date.now() / 1e3).toFixed());
 
 const isInvalidScore = computed(

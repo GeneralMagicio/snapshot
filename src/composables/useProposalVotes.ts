@@ -1,6 +1,7 @@
 import {
   Attestation,
   Attestations,
+  ExtendedSpace,
   Proposal,
   Vote,
   VoteFilters
@@ -8,7 +9,8 @@ import {
 import {
   ATTESTAIONS_QUERY,
   SINGLE_ATTESTAION_QUERY,
-  VOTES_QUERY
+  VOTES_QUERY,
+  VP_QUERY
 } from '@/helpers/queries';
 import { clone } from '@snapshot-labs/snapshot.js/src/utils';
 import { WEIGHTED_VOTING_PROPOSAL_SCHEMA_UID } from '@/helpers/attest';
@@ -17,8 +19,15 @@ import { getAddress } from '@ethersproject/address';
 type QueryParams = {
   voter?: string;
 } & Partial<VoteFilters>;
-
-export function useProposalVotes(proposal: Proposal, loadBy = 6) {
+interface VP {
+  vp: number;
+  vp_by_strategy: number[];
+}
+export function useProposalVotes(
+  proposal: Proposal,
+  loadBy = 6,
+  space: ExtendedSpace
+) {
   const { profiles, loadProfiles } = useProfiles();
   const { apolloQuery } = useApolloQuery();
   const { resolveName } = useResolveName();
@@ -107,6 +116,19 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
       'attestations'
     );
   }
+  async function _fetchVP(queryParams: QueryParams) {
+    return apolloQuery(
+      {
+        query: VP_QUERY,
+        variables: {
+          space: space.id,
+          proposal: proposal.id,
+          voter: queryParams.voter
+        }
+      },
+      'vp'
+    );
+  }
 
   function formatProposalVotes(votes: Vote[]) {
     if (!votes?.length) return [];
@@ -117,15 +139,17 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
     });
   }
 
-  function formatAttestations(attestations: Attestations): Vote[] {
+  async function formatAttestations(
+    attestations: Attestations
+  ): Promise<Vote[]> {
     if (!attestations?.length) return [];
 
     const VisitedAttester = new Set<string>();
 
     const result: Vote[] = [];
 
-    attestations.forEach(attestation => {
-      if (VisitedAttester.has(attestation.attester)) return;
+    for (const attestation of attestations) {
+      if (VisitedAttester.has(attestation.attester)) break;
       VisitedAttester.add(attestation.attester);
 
       const data = JSON.parse(
@@ -138,19 +162,22 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
       choices.forEach((choiceId, index) => {
         choice[choiceId] = percentages[index];
       });
+      const { vp, vp_by_strategy } = ((await _fetchVP({
+        voter: attestation.attester
+      })) as VP) || { vp: 1, vp_by_strategy: 1 };
       result.push({
         ipfs: attestation.id,
         voter: attestation.attester,
         choice: choice,
         reason: '',
-        scores: [1],
-        balance: 1,
-        vp: 1,
-        vp_by_strategy: [1],
+        scores: vp_by_strategy,
+        balance: vp,
+        vp,
+        vp_by_strategy,
         created: attestation.time,
         isAttestation: true
       });
-    });
+    }
 
     return result;
   }
@@ -164,7 +191,9 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
         _fetchAttestations()
       ]);
 
-      const formattedAttestations = formatAttestations(attestationsResponse);
+      const formattedAttestations = await formatAttestations(
+        attestationsResponse
+      );
       attestations.value = formattedAttestations;
       votes.value = [
         ...formattedAttestations
@@ -184,7 +213,9 @@ export function useProposalVotes(proposal: Proposal, loadBy = 6) {
     const voter = response || search;
     try {
       const attestationsResponse = await _fetchSingleAttestation(voter);
-      const formattedAttestations = formatAttestations(attestationsResponse);
+      const formattedAttestations = await formatAttestations(
+        attestationsResponse
+      );
       return formattedAttestations;
     } catch (e) {
       console.log(e);

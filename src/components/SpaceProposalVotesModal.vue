@@ -25,7 +25,7 @@ const {
   loadVotes,
   loadMoreVotes,
   loadSingleVote
-} = useProposalVotes(props.proposal, 20);
+} = useProposalVotes(props.proposal, 20, props.space);
 
 const votesEndEl = ref<HTMLElement | null>(null);
 const filterOptions = ref<VoteFilters>(clone(VOTES_FILTERS_DEFAULT));
