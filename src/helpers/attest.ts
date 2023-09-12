@@ -1,9 +1,3 @@
-// import {
-//   SchemaRegistry,
-//   EAS,
-//   SchemaEncoder,
-//   AttestationRequestData
-// } from '@ethereum-attestation-service/eas-sdk';
 import type { Web3Provider } from '@ethersproject/providers';
 import type { Wallet } from '@ethersproject/wallet';
 import { EASNetworks } from './constants';
@@ -12,53 +6,20 @@ import { calcPercentageOfSum } from '@snapshot-labs/snapshot.js/src/voting/quadr
 export const WEIGHTED_VOTING_PROPOSAL_SCHEMA_UID =
   '0x30457fc9ddd2ce5cc0c8ae9ca5e327db7ec51ea2f766eb7067bbc2e16fbfb783';
 
-// export async function createWeightedVotingProposalSchema(
-//   web3: Web3Provider | Wallet
-// ) {
-//   const signer = 'getSigner' in web3 ? web3.getSigner() : web3;
-//   const network = await signer.getChainId();
-//   const easConfig = EASNetworks[network];
-//   console.log({ easConfig, network });
-//   const schemaRegistryContractAddress = easConfig.SchemaRegistry;
-//   const schemaRegistry = new SchemaRegistry(schemaRegistryContractAddress);
-
-//   schemaRegistry.connect(signer as any);
-
-//   const schema = 'string choice, uint16 percent, bytes32 proposalId';
-//   // const resolverAddress: string = ZERO_ADDRESS;
-
-//   const revocable = true;
-
-//   const transaction = await schemaRegistry.register({
-//     schema,
-//     // resolverAddress,
-//     revocable
-//   });
-
-//   // Optional: Wait for transaction to be validated
-//   await transaction.wait();
-// }
 export async function weightedVotingProposalAttest(
   proposalId: string,
   web3: Web3Provider | Wallet,
   data: Record<number, number>
 ) {
   const module = await import('@ethereum-attestation-service/eas-sdk');
-  console.log('proposalId: ', proposalId);
 
   const signer = 'getSigner' in web3 ? web3.getSigner() : web3;
-  // const signer = 'getSigner' in web3 ? web3.getSigner() : web3;
-  // console.log({ signer });
+
   const network = await signer.getChainId();
   const easConfig = EASNetworks[network];
   const eas = new module.EAS(easConfig.EASDeployment);
   const schemaRegistry = new module.SchemaRegistry(easConfig.SchemaRegistry);
 
-  // const _signer = {
-  //   ...signer,
-  //   signTypedData: signer._signTypedData
-  // };
-  //
   eas.connect(signer as any);
   schemaRegistry.connect(signer as any);
 
@@ -103,7 +64,7 @@ export async function weightedVotingProposalAttest(
         data: multiAttestData
       }
     ]);
-    console.log({ tx });
+
     const newAttestationUID = await tx.wait();
     return { id: newAttestationUID, ipfs: newAttestationUID };
   } catch (e) {

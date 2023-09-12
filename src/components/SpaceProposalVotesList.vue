@@ -11,7 +11,6 @@ const { web3Account } = useWeb3();
 const {
   profiles,
   userPrioritizedVotes,
-  attestations,
   loadingVotes,
   loadVotes,
   loadUserVote
@@ -19,8 +18,10 @@ const {
 
 const modalVotesmOpen = ref(false);
 
-const voteCount = computed(
-  () => props.proposal.votes + (attestations.value.length ? 1 : 0)
+const voteCount = computed(() =>
+  props.proposal.type === 'weighted'
+    ? userPrioritizedVotes.value.length
+    : props.proposal.votes
 );
 
 const showModalDownloadMessage = ref(false);

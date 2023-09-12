@@ -37,7 +37,7 @@ export function useProposalVotes(
   const loadingMoreVotes = ref(false);
   const votes = ref<Vote[]>([]);
   const userVote = ref<Vote | null>(null);
-  const attestations = ref<Vote[]>([]);
+  const isWeighted = proposal.type === 'weighted';
 
   const userPrioritizedVotes = computed(() => {
     const votesClone = clone(votes.value);
@@ -149,7 +149,7 @@ export function useProposalVotes(
     const result: Vote[] = [];
 
     for (const attestation of attestations) {
-      if (VisitedAttester.has(attestation.attester)) break;
+      if (VisitedAttester.has(attestation.attester)) continue;
       VisitedAttester.add(attestation.attester);
 
       const data = JSON.parse(
@@ -183,22 +183,16 @@ export function useProposalVotes(
   }
   async function loadVotes(filter: Partial<VoteFilters> = {}) {
     if (loadingVotes.value) return;
-
     loadingVotes.value = true;
     try {
-      const [response, attestationsResponse] = await Promise.all([
-        _fetchVotes(filter),
-        _fetchAttestations()
-      ]);
+      const response = await (isWeighted
+        ? _fetchAttestations()
+        : _fetchVotes(filter));
 
-      const formattedAttestations = await formatAttestations(
-        attestationsResponse
-      );
-      attestations.value = formattedAttestations;
-      votes.value = [
-        ...formattedAttestations
-        // ...formatProposalVotes(response)
-      ];
+      const formattedVotes = isWeighted
+        ? await formatAttestations(response)
+        : formatProposalVotes(response);
+      votes.value = formattedVotes;
     } catch (e) {
       console.log(e);
     } finally {
@@ -224,26 +218,41 @@ export function useProposalVotes(
     }
     return [];
   }
+  async function loadSingleVote(search: string) {
+    loadingVotes.value = true;
+
+    const response = await resolveName(search);
+    const voter = response || search;
+    try {
+      const response = await _fetchVote({ voter });
+      votes.value = formatProposalVotes(response);
+    } catch (e) {
+      console.log(e);
+    } finally {
+      loadingVotes.value = false;
+    }
+  }
 
   async function loadMoreVotes(filter: Partial<VoteFilters> = {}) {
-    // if (loadingMoreVotes.value || loadingVotes.value) return;
-    //
-    // loadingMoreVotes.value = true;
-    // try {
-    //   const response = await _fetchVotes(filter, votes.value.length);
-    //
-    //   votes.value = votes.value.concat(formatProposalVotes(response));
-    // } catch (e) {
-    //   console.log(e);
-    // } finally {
-    //   loadingMoreVotes.value = false;
-    // }
+    if (loadingMoreVotes.value || loadingVotes.value) return;
+
+    loadingMoreVotes.value = true;
+    try {
+      const response = await _fetchVotes(filter, votes.value.length);
+
+      votes.value = votes.value.concat(formatProposalVotes(response));
+    } catch (e) {
+      console.log(e);
+    } finally {
+      loadingMoreVotes.value = false;
+    }
   }
 
   async function loadUserVote(voter: string) {
     try {
-      // const response = await _fetchVote({ voter });
-      const response = await _loadUserAttestation(voter);
+      const response = await (isWeighted
+        ? _loadUserAttestation(voter)
+        : _fetchVote({ voter }));
       userVote.value =
         response.length > 0 ? formatProposalVotes(response)[0] : null;
     } catch (e) {
@@ -257,7 +266,6 @@ export function useProposalVotes(
 
   return {
     votes,
-    attestations,
     userPrioritizedVotes,
     profiles,
     loadingVotes,
@@ -266,7 +274,7 @@ export function useProposalVotes(
     formatProposalVotes,
     loadVotes,
     loadMoreVotes,
-    loadSingleVote: _loadUserAttestation,
+    loadSingleVote: isWeighted ? _loadUserAttestation : loadSingleVote,
     loadUserVote
   };
 }
