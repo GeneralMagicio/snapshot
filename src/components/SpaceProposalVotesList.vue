@@ -54,7 +54,7 @@ watch(web3Account, loadUserVote, { immediate: true });
 
 <template>
   <BaseBlock
-    v-if="proposal.votes > 0"
+    v-if="voteCount"
     :title="$t('votes')"
     :counter="voteCount"
     :loading="loadingVotes"

@@ -50,7 +50,6 @@ export function useProposalVotes(
       }
       votesClone.unshift(userVote.value);
     }
-
     return votesClone;
   });
 
@@ -184,6 +183,7 @@ export function useProposalVotes(
   async function loadVotes(filter: Partial<VoteFilters> = {}) {
     if (loadingVotes.value) return;
     loadingVotes.value = true;
+
     try {
       const response = await (isWeighted
         ? _fetchAttestations()
