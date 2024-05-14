@@ -11,16 +11,17 @@ const { web3Account } = useWeb3();
 const {
   profiles,
   userPrioritizedVotes,
-  attestations,
   loadingVotes,
   loadVotes,
   loadUserVote
-} = useProposalVotes(props.proposal, 6);
+} = useProposalVotes(props.proposal, 6, props.space);
 
 const modalVotesmOpen = ref(false);
 
-const voteCount = computed(
-  () => props.proposal.votes + (attestations.value.length ? 1 : 0)
+const voteCount = computed(() =>
+  props.proposal.type === 'weighted'
+    ? userPrioritizedVotes.value.length
+    : props.proposal.votes
 );
 
 const showModalDownloadMessage = ref(false);
@@ -53,7 +54,7 @@ watch(web3Account, loadUserVote, { immediate: true });
 
 <template>
   <BaseBlock
-    v-if="proposal.votes > 0"
+    v-if="voteCount"
     :title="$t('votes')"
     :counter="voteCount"
     :loading="loadingVotes"

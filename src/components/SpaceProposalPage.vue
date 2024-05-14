@@ -183,6 +183,7 @@ onMounted(() => setMessageVisibility(props.proposal.flagged));
             v-if="proposal?.state === 'active'"
             v-model="selectedChoices"
             :proposal="proposal"
+            :space="space"
             @open="modalOpen = true"
             @clickVote="clickVote"
           />

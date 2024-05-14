@@ -553,7 +553,7 @@ export const SINGLE_ATTESTAION_QUERY = gql`
         attester: { equals: $attester }
         schemaId: { equals: $schemaID }
         data: { startsWith: $proposalID }
-      },
+      }
       orderBy: { time: desc }
       take: 1
     ) {
@@ -561,6 +561,15 @@ export const SINGLE_ATTESTAION_QUERY = gql`
       decodedDataJson
       attester
       id
+    }
+  }
+`;
+
+export const VP_QUERY = gql`
+  query VPQuery($proposal: String, $space: String!, $voter: String!) {
+    vp(proposal: $proposal, space: $space, voter: $voter) {
+      vp
+      vp_by_strategy
     }
   }
 `;
